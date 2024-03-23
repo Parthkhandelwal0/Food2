@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 // Pre-save hook to hash password before saving the use
 
 const StoreSchema = new mongoose.Schema({
+  image: { type: String }, // An array to store multiple image URLs
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },

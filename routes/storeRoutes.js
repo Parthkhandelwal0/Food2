@@ -26,7 +26,14 @@ const authenticateToken = (req, res, next) => {
 router.get("/", async (req, res) => {
   try {
     const stores = await Store.find({}); // Find all stores
-    res.json(stores);
+    const formattedStores = stores.map((store) => ({
+      title: store.name,
+      image: store.image,
+      // quantity: store.quantity,
+      // Map any additional fields as needed
+    }));
+
+    res.json({ success: true, data: formattedStores, message: "Stores sent" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching stores" });

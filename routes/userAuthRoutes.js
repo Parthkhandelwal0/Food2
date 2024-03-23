@@ -8,11 +8,11 @@ require("dotenv").config();
 
 // Register User
 router.post("/register", async (req, res) => {
-  const { username, password, name, location, phone } = req.body;
+  const { email, password, name, location, phone } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
     const user = new User({
-      username,
+      email,
       password: hashedPassword,
       name,
       location,
@@ -25,6 +25,7 @@ router.post("/register", async (req, res) => {
     const data = {
       token: token,
       user: {
+        email: email,
         id: user._id,
         name: req.body.name,
         phone: req.body.phone,
@@ -41,9 +42,9 @@ router.post("/register", async (req, res) => {
 
 // Login User
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: "Authentication failed" });
     }

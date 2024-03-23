@@ -5,9 +5,29 @@ const bcrypt = require("bcryptjs");
 const Store = require("../models/Store");
 const router = express.Router();
 require("dotenv").config();
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
+// Directory where the uploads will be stored
+const uploadDir = path.join(__dirname, "uploads");
+
+// Ensure the upload directory exists
+fs.existsSync(uploadDir) || fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); // Use the directory path
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 // Register Store
-router.post("/register", async (req, res) => {
+router.post("/register", upload.single("image"), async (req, res) => {
   const {
     email,
     password,
@@ -19,6 +39,7 @@ router.post("/register", async (req, res) => {
     confirmPassword,
   } = req.body;
   try {
+    const imagePath = req.file ? req.file.path : null;
     const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
     const store = new Store({
       email,
@@ -28,6 +49,7 @@ router.post("/register", async (req, res) => {
       phone,
       workingHrs,
       workingDays,
+      image: imagePath,
     });
     await store.save();
     const token = jwt.sign({ storeId: store._id }, process.env.JWT_SECRET, {
@@ -43,6 +65,7 @@ router.post("/register", async (req, res) => {
       phone: req.body.phone,
       workingHrs: req.body.workingHrs,
       workingDays: req.body.workingDays,
+      image: iamgePath,
     };
     res.status(201).json({
       success: true,

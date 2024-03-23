@@ -45,59 +45,163 @@ const upload = multer({ storage: storage });
 router.post(
   "/",
   authenticateToken,
-  upload.single("image"),
+  upload.array("images", 5), // Adjust '5' to the max number of images you'd allow
   async (req, res) => {
-    const { name, description, price } = req.body;
+    const {
+      name,
+      price,
+      old_price,
+      serving_size,
+      calories,
+      total_fat,
+      saturated_fat,
+      total_sugars,
+      protein,
+      quantity,
+    } = req.body;
+    const imagesPaths = req.files.map((file) => file.path); // Array of image paths
+
     try {
-      const imagePath = req.file ? req.file.path : null; // Get the path of the uploaded file
       const product = new Product({
         name,
-        description,
         price,
-        store: req.store.storeId, // Assuming you attach store ID to req.store in your auth middleware
-        image: imagePath,
+        old_price,
+        serving_size,
+        calories,
+        total_fat,
+        saturated_fat,
+        total_sugars,
+        protein,
+        quantity,
+        images: imagesPaths, // Array of image URLs
+        store: req.store.storeId, // Ensure this matches how you're setting the store ID in your middleware
       });
+
+      const data = {
+        name: name,
+        price: price,
+        old_price: old_price,
+        serving_size: serving_size,
+        calories: calories,
+        total_fat: total_fat,
+        saturated_fat: saturated_fat,
+        total_sugars: total_sugars,
+        protein: protein,
+        quantity: quantity,
+        id: product._id,
+      };
+
       await product.save();
-      res.status(201).json(product);
+      res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        data: data,
+      });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       res.status(400).json({ error: "Product creation failed" });
     }
   }
 );
 
-// Get products for the authenticated store
 router.get("/", authenticateToken, async (req, res) => {
   try {
-    const products = await Product.find({ store: req.store.storeId });
-    res.json(products);
-  } catch (error) {
-    res.status(400).json({ error: "Failed to retrieve products" });
-  }
-});
-// PUT route for updating a store
-router.put("/:id", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const { name, description, location, phone } = req.body;
-  const updateData = {
-    name,
-    description,
-    location,
-    phone,
-  };
+    const products = await Product.find({ store: req.store.storeId })
+      .populate("store", "name") // Assuming you want to include some store details; adjust as needed
+      .exec();
 
-  try {
-    const updatedStore = await Store.findByIdAndUpdate(id, updateData, {
-      new: true,
+    const data = products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      old_price: product.old_price,
+      serving_size: product.serving_size,
+      calories: product.calories,
+      total_fat: product.total_fat,
+      saturated_fat: product.saturated_fat,
+      total_sugars: product.total_sugars,
+      protein: product.protein,
+      quantity: product.quantity,
+      images: product.images, // Assuming images is already an array of URLs
+      // Include any other product fields you need to send
+    }));
+
+    res.json({
+      success: true,
+      data: data,
+      message: "products sent",
     });
-    if (!updatedStore) {
-      return res.status(404).send("Store not found");
-    }
-    res.json(updatedStore);
   } catch (error) {
-    res.status(400).send("Error updating store");
+    console.error(error);
+    res.status(500).json({ message: "Error fetching products" });
   }
 });
+router.put(
+  "/:id",
+  authenticateToken,
+  upload.array("images", 5),
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      name,
+      price,
+      old_price,
+      serving_size,
+      calories,
+      total_fat,
+      saturated_fat,
+      total_sugars,
+      protein,
+      quantity,
+    } = req.body;
+
+    try {
+      const productUpdates = {
+        name,
+        price,
+        old_price,
+        serving_size,
+        calories,
+        total_fat,
+        saturated_fat,
+        total_sugars,
+        protein,
+        quantity,
+        // Omit images here since they're handled separately
+      };
+
+      // Filter out undefined fields
+      Object.keys(productUpdates).forEach(
+        (key) => productUpdates[key] === undefined && delete productUpdates[key]
+      );
+
+      // Find the product and update it with the new values. Use new: true to return the updated document
+      const updatedProduct = await Product.findByIdAndUpdate(
+        id,
+        productUpdates,
+        { new: true }
+      );
+
+      // If there are new images, update the product's images field; otherwise, retain existing images
+      if (req.files && req.files.length > 0) {
+        updatedProduct.images = req.files.map((file) => file.path);
+        await updatedProduct.save(); // Save the product if there were changes to the images
+      }
+
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json({
+        message: "Product updated successfully",
+        product: updatedProduct,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ error: "Failed to update product" });
+    }
+  }
+);
 
 // DELETE route for deleting a product and its image
 router.delete("/:id", authenticateToken, async (req, res) => {
