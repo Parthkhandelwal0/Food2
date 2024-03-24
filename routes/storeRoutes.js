@@ -4,6 +4,9 @@ const bcrypt = require("bcryptjs");
 const Store = require("../models/Store");
 require("dotenv").config();
 const Product = require("../models/Product");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 const router = express.Router();
 
@@ -22,6 +25,22 @@ const authenticateToken = (req, res, next) => {
   }
   return next();
 };
+
+// Directory where the uploads will be stored
+const uploadDir = path.join(__dirname, "uploads");
+// Ensure the upload directory exists
+fs.existsSync(uploadDir) || fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); // Use the directory path
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 router.patch("/coordinates", authenticateToken, async (req, res) => {
   const storeId = req.store.storeId;
@@ -78,50 +97,55 @@ router.get("/", async (req, res) => {
 });
 
 // Update store information
-router.put("/update", authenticateToken, async (req, res) => {
-  console.log(req.body);
+router.put(
+  "/update",
+  authenticateToken,
+  upload.single("photo"),
+  async (req, res) => {
+    console.log(req.body);
+    const storeId = req.store.storeId;
 
-  const { id, email, name, location, phone, workingHrs, workingDays, photo } =
-    req.body;
+    const { email, name, location, phone, workingHrs, workingDays } = req.body;
 
-  try {
-    let store = await Store.findById(id);
-    if (!store) {
-      return res.status(404).json({ message: "Store not found" });
+    try {
+      let store = await Store.findById(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Check if the requester is the store owner
+      if (req.store.storeId !== store._id.toString()) {
+        return res
+          .status(403)
+          .json({ message: "You can only update your own store" });
+      }
+
+      // Update fields
+      if (email) store.email = email;
+      if (name) store.name = name;
+      if (location) store.location = location;
+      if (phone) store.phone = phone;
+      if (workingDays) store.workingDays = workingDays;
+      if (workingHrs) store.workingHrs = workingHrs;
+
+      // Handle new image upload
+      if (req.file) {
+        const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
+        store.image = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL for the new image
+      } // Optionally handle other cases, such as deleting the image or keeping the existing one
+
+      await store.save(); // Save the updated store information
+      res.json({
+        success: true,
+        message: "Store updated successfully",
+        data: store,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error updating store", error: error.message });
     }
-
-    // Check if the requester is the store owner
-    if (req.store.storeId !== store._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "You can only update your own store" });
-    }
-
-    // Update fields
-    if (email) store.email = email;
-    if (name) store.name = name;
-    if (location) store.location = location;
-    if (phone) store.phone = phone;
-    if (workingDays) store.workingDays = workingDays;
-    if (workingHrs) store.workingHrs = workingHrs;
-    if (photo) store.image = image;
-
-    // Handle password change with hashing
-    // if (password) {
-    //   store.password = await bcrypt.hash(password, 10);
-    // }
-
-    await store.save(); // Save the updated store information
-    res.json({
-      success: true,
-      message: "Store updated successfully",
-      data: store,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating store", error: error.message });
   }
-});
+);
 
 module.exports = router;
