@@ -23,6 +23,43 @@ const authenticateToken = (req, res, next) => {
   return next();
 };
 
+router.patch("/coordinates", authenticateToken, async (req, res) => {
+  const storeId = req.store.storeId;
+  const { longitude, latitude } = req.body;
+
+  if (!longitude || !latitude) {
+    return res
+      .status(400)
+      .json({ message: "Longitude and latitude are required." });
+  }
+
+  try {
+    const store = await Store.findById(storeId);
+
+    if (!store) {
+      return res.status(404).json({ message: "Store not found." });
+    }
+
+    // Update the store's coordinates
+    store.coordinates = { longitude, latitude };
+    await store.save();
+
+    res.json({
+      success: true,
+      message: "Coordinates updated successfully.",
+      data: {
+        longitude: store.coordinates.longitude,
+        latitude: store.coordinates.latitude,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update coordinates." });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const stores = await Store.find({}); // Find all stores

@@ -65,7 +65,7 @@ router.post("/register", upload.single("image"), async (req, res) => {
       phone: req.body.phone,
       workingHrs: req.body.workingHrs,
       workingDays: req.body.workingDays,
-      image: iamgePath,
+      image: imagePath,
     };
     res.status(201).json({
       success: true,

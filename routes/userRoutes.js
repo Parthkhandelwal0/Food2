@@ -3,6 +3,9 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
+const Store = require("../models/Store");
+
+const nodemailer = require("nodemailer");
 
 require("dotenv").config();
 const Product = require("../models/Product");
@@ -26,6 +29,39 @@ const authenticateToken = (req, res, next) => {
   return next();
 };
 
+let transporter = nodemailer.createTransport({
+  service: "gmail", // For Gmail
+  auth: {
+    user: "kparth2010@gmail.com", // Your Gmail address
+    pass: "ckco omiw qkht npew ", // Your Gmail password or App Password
+  },
+});
+
+router.get("/stores", async (req, res) => {
+  try {
+    const stores = await Store.find({}); // Fetch all stores from the database
+
+    // Formatting the response object as specified
+    const formattedResponse = stores.reduce((acc, store, index) => {
+      const key = `store${index + 1}`; // Creating keys dynamically based on index: storeone, storetwo, etc.
+      acc[key] = {
+        latlng: {
+          latitude: store.coordinates.latitude, // Assuming your Store model has a coordinates field
+          longitude: store.coordinates.longitude,
+        },
+        name: store.name, // Assuming your Store model uses 'title' for the store name
+        description: "store.description", // Assuming your Store model has a description field
+      };
+      return acc;
+    }, {});
+
+    res.json(formattedResponse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching stores" });
+  }
+});
+
 router.post("/chechPassword", async (req, res) => {
   const { password } = req.body;
   const id = req.user.userId;
@@ -39,13 +75,11 @@ router.post("/chechPassword", async (req, res) => {
       .status(201)
       .json({ success: true, data: user, message: "password matched" });
   } catch (error) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        data: error.message,
-        message: "password did not match",
-      });
+    res.status(400).json({
+      success: false,
+      data: error.message,
+      message: "password did not match",
+    });
   }
 });
 
@@ -151,9 +185,12 @@ router.get("/cart", authenticateToken, async (req, res) => {
 });
 
 router.post("/orders", authenticateToken, async (req, res) => {
-  const userId = req.user.userId; // Assuming authenticateToken middleware adds user ID to req.user
+  const userId = req.user.userId; //  authenticateToken middleware adds user ID to req.user
+  console.log(userId);
   const { total, products, discount } = req.body; // Extracting order details from the request body
   const currentDate = new Date();
+  const user = await User.findById(userId); // Fetch user details  console.log(userFromDB);
+
   const formattedDate = format(currentDate, "MMM dd, yyyy 'at' h:mm a"); // "Feb 25, 2023 at 8:32 PM"
   if (!userId) {
     return res.status(400).send("User ID is missing");
@@ -180,6 +217,24 @@ router.post("/orders", authenticateToken, async (req, res) => {
     };
 
     await newOrder.save();
+    const mailOptions = {
+      from: '"Your Store Name" <yourgmail@gmail.com>', // sender address
+      to: user.email, // list of receivers, assuming user model has an email field
+      subject: "Order Confirmation", // Subject line
+      text: `Your order has been placed successfully on ${formattedDate}. Order Details: ${products
+        .map((p) => `${p.name}, Quantity: ${p.quantity}, Price: ${p.price}`)
+        .join("; ")}. Total Amount: ${total}. Discount: ${discount}.`, // plain text body
+      // html: "<b>Hello world?</b>", // You can also use HTML body
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log("Email could not be sent: " + error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
     res.status(201).json(send);
   } catch (error) {
     const send = {
