@@ -89,6 +89,7 @@ router.post(
         protein: protein,
         quantity: quantity,
         id: product._id,
+        images: imagesPaths,
       };
 
       await product.save();
