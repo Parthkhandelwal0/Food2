@@ -188,10 +188,38 @@ router.get("/", authenticateToken, async (req, res) => {
 });
 
 // Route to update product quantities
+// router.post("/updateQuantities", async (req, res) => {
+//   try {
+//     const updates = req.body; // Assuming the body is an array of { id, quantity }
+
+//     const updatedProducts = [];
+
+//     // Loop through each update and modify the corresponding product
+//     for (const update of updates) {
+//       const product = await Product.findById(update.id);
+//       if (product) {
+//         product.quantity = update.quantity;
+//         await product.save();
+//         updatedProducts.push(product); // Add the updated product to the array
+//       } else {
+//         return res
+//           .status(404)
+//           .json({ message: `Product with id ${update.id} not found` });
+//       }
+//     }
+
+//     res.json({ success: true, data: updatedProducts, message: "updated" }); // Send the updated products as response
+//   } catch (error) {
+//     console.error(error);
+//     res
+//       .status(500)
+//       .json({ message: "An error occurred", error: error.message });
+//   }
+// });
+
 router.post("/updateQuantities", async (req, res) => {
   try {
     const updates = req.body; // Assuming the body is an array of { id, quantity }
-
     const updatedProducts = [];
 
     // Loop through each update and modify the corresponding product
@@ -200,7 +228,15 @@ router.post("/updateQuantities", async (req, res) => {
       if (product) {
         product.quantity = update.quantity;
         await product.save();
-        updatedProducts.push(product); // Add the updated product to the array
+
+        // Convert the Mongoose document to a plain JavaScript object
+        const productObject = product.toObject();
+
+        // Remove the _id field and replace it with id
+        delete productObject._id;
+        productObject.id = product.id; // Use Mongoose's .id property which is a string representation of the document's _id
+
+        updatedProducts.push(productObject); // Add the updated product to the array
       } else {
         return res
           .status(404)
@@ -208,7 +244,12 @@ router.post("/updateQuantities", async (req, res) => {
       }
     }
 
-    res.json({ success: true, data: updatedProducts, message: "updated" }); // Send the updated products as response
+    // Send the updated products as response
+    res.json({
+      success: true,
+      data: updatedProducts,
+      message: "Products quantities updated",
+    });
   } catch (error) {
     console.error(error);
     res
