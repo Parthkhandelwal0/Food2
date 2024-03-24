@@ -38,7 +38,13 @@ router.post("/register", upload.single("photo"), async (req, res) => {
     confirmPassword,
   } = req.body;
   try {
-    const imagePath = req.file ? req.file.path : null;
+    let imageUrl = null;
+    if (req.file) {
+      const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
+      imageUrl = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL
+    }
+
+    // const imagePath = req.file ? req.file.path : null;
     const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
     const store = new Store({
       email,
@@ -48,7 +54,7 @@ router.post("/register", upload.single("photo"), async (req, res) => {
       phone,
       workingHrs,
       workingDays,
-      image: imagePath,
+      image: imageUrl,
     });
     await store.save();
     const token = jwt.sign({ storeId: store._id }, process.env.JWT_SECRET, {
@@ -63,7 +69,7 @@ router.post("/register", upload.single("photo"), async (req, res) => {
       phone: req.body.phone,
       workingHrs: req.body.workingHrs,
       workingDays: req.body.workingDays,
-      photo: imagePath,
+      photo: imageUrl,
     };
     console;
 
