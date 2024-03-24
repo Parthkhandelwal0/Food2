@@ -97,6 +97,56 @@ router.get("/", async (req, res) => {
 });
 
 // Update store information
+// router.put(
+//   "/update",
+//   authenticateToken,
+//   upload.single("photo"),
+//   async (req, res) => {
+//     console.log(req.body);
+//     const storeId = req.store.storeId;
+
+//     const { email, name, location, phone, workingHrs, workingDays } = req.body;
+
+//     try {
+//       let store = await Store.findById(storeId);
+//       if (!store) {
+//         return res.status(404).json({ message: "Store not found" });
+//       }
+
+//       // Check if the requester is the store owner
+//       if (req.store.storeId !== store._id.toString()) {
+//         return res
+//           .status(403)
+//           .json({ message: "You can only update your own store" });
+//       }
+
+//       // Update fields
+//       if (email) store.email = email;
+//       if (name) store.name = name;
+//       if (location) store.location = location;
+//       if (phone) store.phone = phone;
+//       if (workingDays) store.workingDays = workingDays;
+//       if (workingHrs) store.workingHrs = workingHrs;
+
+//       // Handle new image upload
+//       if (req.file) {
+//         const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
+//         store.image = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL for the new image
+//       } // Optionally handle other cases, such as deleting the image or keeping the existing one
+
+//       await store.save(); // Save the updated store information
+//       res.json({
+//         success: true,
+//         message: "Store updated successfully",
+//         data: store,
+//       });
+//     } catch (error) {
+//       res
+//         .status(500)
+//         .json({ message: "Error updating store", error: error.message });
+//     }
+//   }
+// );
 router.put(
   "/update",
   authenticateToken,
@@ -130,9 +180,24 @@ router.put(
 
       // Handle new image upload
       if (req.file) {
+        // If there's an existing image, delete it first
+        if (store.image) {
+          const existingImagePath = store.image.replace(
+            /^http:\/\/3\.144\.193\.152:3000\/uploads\//,
+            ""
+          ); // Extract the filename from the URL
+          const fullPath = path.join(__dirname, "uploads", existingImagePath);
+          fs.unlink(fullPath, (err) => {
+            if (err) {
+              console.error("Failed to delete old image:", err.message);
+              // Note: You might not want to return or throw an error here as it could interrupt the update process
+            }
+          });
+        }
+
         const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
         store.image = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL for the new image
-      } // Optionally handle other cases, such as deleting the image or keeping the existing one
+      }
 
       await store.save(); // Save the updated store information
       res.json({
@@ -147,5 +212,4 @@ router.put(
     }
   }
 );
-
 module.exports = router;
