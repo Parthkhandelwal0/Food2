@@ -11,7 +11,6 @@ const path = require("path");
 
 // Directory where the uploads will be stored
 const uploadDir = path.join(__dirname, "uploads");
-
 // Ensure the upload directory exists
 fs.existsSync(uploadDir) || fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -55,7 +54,6 @@ router.post("/register", upload.single("photo"), async (req, res) => {
     const token = jwt.sign({ storeId: store._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log(token);
     const data = {
       token: token,
       id: store._id,
@@ -67,6 +65,8 @@ router.post("/register", upload.single("photo"), async (req, res) => {
       workingDays: req.body.workingDays,
       photo: imagePath,
     };
+    console;
+
     res.status(201).json({
       success: true,
       message: "register success",
