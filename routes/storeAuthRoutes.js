@@ -102,7 +102,7 @@ router.post("/login", async (req, res) => {
         phone: store.phone,
         workingHrs: store.workingHrs,
         workingDays: store.workingDays,
-        photo: "image",
+        photo: store.image,
       },
     };
     res.status(201).json({
