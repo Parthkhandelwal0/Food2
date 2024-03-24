@@ -81,7 +81,7 @@ router.get("/", async (req, res) => {
 router.put("/update", authenticateToken, async (req, res) => {
   console.log(req.body);
 
-  const { id, email, name, location, phone, workingHrs, workingDays } =
+  const { id, email, name, location, phone, workingHrs, workingDays, photo } =
     req.body;
 
   try {
@@ -104,6 +104,7 @@ router.put("/update", authenticateToken, async (req, res) => {
     if (phone) store.phone = phone;
     if (workingDays) store.workingDays = workingDays;
     if (workingHrs) store.workingHrs = workingHrs;
+    if (photo) store.image = image;
 
     // Handle password change with hashing
     // if (password) {
