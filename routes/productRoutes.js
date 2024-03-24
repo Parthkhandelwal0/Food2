@@ -200,7 +200,7 @@ router.post("/updateQuantities", async (req, res) => {
       if (product) {
         product.quantity = update.quantity;
         await product.save();
-        updatedProducts.push(new_product); // Add the updated product to the array
+        updatedProducts.push(product); // Add the updated product to the array
       } else {
         return res
           .status(404)
