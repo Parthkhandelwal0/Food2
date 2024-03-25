@@ -398,9 +398,10 @@ router.get("/:storeId", async (req, res) => {
     const formattedProducts = products.map((product) => ({
       id: product._id, // Assuming you want to rename _id to id
       name: product.name,
-      images: [
-        "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
-      ],
+      // images: [
+      //   "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
+      // ],
+      images: product.images,
       description: product.name,
       price: product.price,
       old_price: product.old_price, // Include only if present

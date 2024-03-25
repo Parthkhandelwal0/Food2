@@ -218,9 +218,10 @@ router.get("/cart", authenticateToken, async (req, res) => {
     const transformedItems = cart.items.map((item) => ({
       id: item.product._id,
       name: item.product.name,
-      images: [
-        "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
-      ], // Assuming images is an array field in Product
+      // images: [
+      //   "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
+      // ], // Assuming images is an array field in Product
+      images: item.product.name,
       description: item.product.description,
       price: item.price,
       old_price: item.product.old_price, // Assuming old_price is a field in Product
