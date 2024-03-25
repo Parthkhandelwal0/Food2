@@ -25,9 +25,7 @@ const authenticateToken = (req, res, next) => {
   return next();
 };
 
-// Directory where the uploads will be stored
 const uploadDir = path.join(__dirname, "uploads");
-
 // Ensure the upload directory exists
 fs.existsSync(uploadDir) || fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -42,11 +40,122 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 // Add a new product, linked to the authenticated store
+// router.post(
+//   "/",
+//   authenticateToken,
+//   upload.array("images", 5), // Adjust '5' to the max number of images you'd allow
+
+//   async (req, res) => {
+//     const {
+//       name,
+//       price,
+//       old_price,
+//       serving_size,
+//       calories,
+//       total_fat,
+//       saturated_fat,
+//       total_sugars,
+//       protein,
+//       quantity,
+//     } = req.body;
+//     const imagesPaths = req.files.map((file) => file.path); // Array of image paths
+//     if (req.body.id) {
+//       try {
+//         const productUpdates = {
+//           name,
+//           price,
+//           old_price,
+//           serving_size,
+//           calories,
+//           total_fat,
+//           saturated_fat,
+//           total_sugars,
+//           protein,
+//           quantity,
+//           // Omit images here since they're handled separately
+//         };
+
+//         // Filter out undefined fields
+//         Object.keys(productUpdates).forEach(
+//           (key) =>
+//             productUpdates[key] === undefined && delete productUpdates[key]
+//         );
+
+//         // Find the product and update it with the new values. Use new: true to return the updated document
+//         const updatedProduct = await Product.findByIdAndUpdate(
+//           req.body.id,
+//           productUpdates,
+//           { new: true }
+//         );
+
+//         // If there are new images, update the product's images field; otherwise, retain existing images
+//         if (req.files && req.files.length > 0) {
+//           updatedProduct.images = req.files.map((file) => file.path);
+//           await updatedProduct.save(); // Save the product if there were changes to the images
+//         }
+
+//         if (!updatedProduct) {
+//           return res.status(404).json({ message: "Product not found" });
+//         }
+
+//         res.json({
+//           message: "Product updated successfully",
+//           product: updatedProduct,
+//         });
+//       } catch (error) {
+//         console.error(error);
+//         res.status(400).json({ error: "Failed to update product" });
+//       }
+//     } else {
+//       try {
+//         const product = new Product({
+//           name,
+//           price,
+//           old_price,
+//           serving_size,
+//           calories,
+//           total_fat,
+//           saturated_fat,
+//           total_sugars,
+//           protein,
+//           quantity,
+//           images: imagesPaths, // Array of image URLs
+//           store: req.store.storeId, // Ensure this matches how you're setting the store ID in your middleware
+//         });
+
+//         const data = {
+//           name: name,
+//           price: price,
+//           old_price: old_price,
+//           serving_size: serving_size,
+//           calories: calories,
+//           total_fat: total_fat,
+//           saturated_fat: saturated_fat,
+//           total_sugars: total_sugars,
+//           protein: protein,
+//           quantity: quantity,
+//           id: product._id,
+//           images: imagesPaths,
+//         };
+
+//         await product.save();
+//         res.status(201).json({
+//           success: true,
+//           message: "Product created successfully",
+//           data: data,
+//         });
+//       } catch (error) {
+//         console.error(error);
+//         res.status(400).json({ error: "Product creation failed" });
+//       }
+//     }
+//   }
+// );
+
 router.post(
   "/",
   authenticateToken,
-  upload.array("images", 5), // Adjust '5' to the max number of images you'd allow
-
+  upload.single("images"), // Adjust '5' to the max number of images you'd allow
   async (req, res) => {
     const {
       name,
@@ -60,7 +169,12 @@ router.post(
       protein,
       quantity,
     } = req.body;
-    const imagesPaths = req.files.map((file) => file.path); // Array of image paths
+    let imagesUrl = [];
+    console.log(req.file);
+    if (req.file) {
+      const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
+      imagesUrl = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL
+    }
     if (req.body.id) {
       try {
         const productUpdates = {
@@ -83,16 +197,14 @@ router.post(
             productUpdates[key] === undefined && delete productUpdates[key]
         );
 
-        // Find the product and update it with the new values. Use new: true to return the updated document
         const updatedProduct = await Product.findByIdAndUpdate(
           req.body.id,
           productUpdates,
           { new: true }
         );
 
-        // If there are new images, update the product's images field; otherwise, retain existing images
-        if (req.files && req.files.length > 0) {
-          updatedProduct.images = req.files.map((file) => file.path);
+        if (imagesUrl.length > 0) {
+          updatedProduct.images = imagesUrl;
           await updatedProduct.save(); // Save the product if there were changes to the images
         }
 
@@ -101,6 +213,7 @@ router.post(
         }
 
         res.json({
+          success: true,
           message: "Product updated successfully",
           product: updatedProduct,
         });
@@ -121,30 +234,16 @@ router.post(
           total_sugars,
           protein,
           quantity,
-          images: imagesPaths, // Array of image URLs
-          store: req.store.storeId, // Ensure this matches how you're setting the store ID in your middleware
+          images: imagesUrl, // Use the URLs instead of local paths
+          store: req.store.storeId,
         });
 
-        const data = {
-          name: name,
-          price: price,
-          old_price: old_price,
-          serving_size: serving_size,
-          calories: calories,
-          total_fat: total_fat,
-          saturated_fat: saturated_fat,
-          total_sugars: total_sugars,
-          protein: protein,
-          quantity: quantity,
-          id: product._id,
-          images: imagesPaths,
-        };
-
         await product.save();
+
         res.status(201).json({
           success: true,
           message: "Product created successfully",
-          data: data,
+          product,
         });
       } catch (error) {
         console.error(error);
@@ -289,13 +388,53 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 });
 
 // Get products for a store
-router.get("/:id", async (req, res) => {
+router.get("/:storeId", async (req, res) => {
+  const { storeId } = req.params;
+  console.log(req);
   try {
-    const { id } = req.params;
-    const products = await Product.find({ store: id });
-    res.json(products);
+    const products = await Product.find({ store: storeId }).lean(); // Find all products for the given store
+
+    // Format each product
+    const formattedProducts = products.map((product) => ({
+      id: product._id, // Assuming you want to rename _id to id
+      name: product.name,
+      images: [
+        "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
+      ],
+      description: product.name,
+      price: product.price,
+      old_price: product.old_price, // Include only if present
+      nutrition_information: {
+        serving_size: product.serving_size,
+        calories: product.calories,
+        total_fat: product.total_fat,
+        saturated_fat: product.saturated_fat,
+        total_sugars: product.total_sugars,
+        protein: product.protein,
+      },
+      reviews: [
+        {
+          id: 1,
+          name: "Adrianna Mercado",
+          image: "https://george-fx.github.io/funiq/resources/reviews/01.jpg",
+          comment:
+            "Consequat ut ea dolor aliqua laborum tempor Lorem culpa. Commodo veniam sint est mollit proident commodo.",
+          rating: 5,
+          date: "23 Jan",
+        },
+      ], // Assuming reviews are stored within the product document
+    }));
+
+    res.json({
+      success: true,
+      data: formattedProducts,
+      message: "Products retrieved successfully",
+    });
   } catch (error) {
-    res.status(400).json({ error: "Failed to retrieve products" });
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve products", error: error.message });
   }
 });
 

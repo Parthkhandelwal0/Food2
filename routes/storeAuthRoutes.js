@@ -43,7 +43,8 @@ router.post("/register", upload.single("photo"), async (req, res) => {
       const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
       imageUrl = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Construct the full URL
     }
-
+    console.log(req.file);
+    console.log(req.body);
     // const imagePath = req.file ? req.file.path : null;
     const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
     const store = new Store({

@@ -37,8 +37,10 @@ let transporter = nodemailer.createTransport({
   },
 });
 
-router.get("/stores", async (req, res) => {
+router.post("/stores", async (req, res) => {
   try {
+    console.log(req.body);
+    userLocation = req.body.location;
     const stores = await Store.find({}); // Fetch all stores from the database
 
     // Formatting the response object as specified
@@ -49,16 +51,25 @@ router.get("/stores", async (req, res) => {
           latitude: store.coordinates.latitude, // Assuming your Store model has a coordinates field
           longitude: store.coordinates.longitude,
         },
-        name: store.name, // Assuming your Store model uses 'title' for the store name
+        key: store._id,
+        title: store.name, // Assuming your Store model uses 'title' for the store name
         description: "store.description", // Assuming your Store model has a description field
       };
       return acc;
     }, {});
 
-    res.json(formattedResponse);
+    res.json({
+      success: true,
+      data: formattedResponse,
+      message: "markers sent",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error fetching stores" });
+    res.status(500).json({
+      success: false,
+      data: error.message,
+      message: "error sent",
+    });
   }
 });
 
@@ -86,7 +97,7 @@ router.post("/chechPassword", async (req, res) => {
 // Update user information
 router.put("/update", authenticateToken, async (req, res) => {
   const id = req.user.userId;
-  const { username, password, name, location, phone } = req.body;
+  const { email, password, name, location, phone } = req.body;
 
   try {
     let user = await User.findById(id);
@@ -102,7 +113,7 @@ router.put("/update", authenticateToken, async (req, res) => {
     }
 
     // Update fields
-    if (username) user.username = username;
+    if (email) user.email = email;
     if (name) user.name = name;
     if (location) user.location = location;
     if (phone) user.phone = phone;
@@ -113,7 +124,11 @@ router.put("/update", authenticateToken, async (req, res) => {
     }
 
     await user.save(); // Save the updated user information
-    res.json({ message: "User updated successfully", user });
+    res.json({
+      success: true,
+      message: "User updated successfully",
+      data: user,
+    });
   } catch (error) {
     res
       .status(500)
@@ -124,10 +139,10 @@ router.put("/update", authenticateToken, async (req, res) => {
 router.post("/cart", authenticateToken, async (req, res) => {
   const userId = req.user.userId; // Adjust based on your authentication middleware
   // Adjust based on your authentication middleware
-  const { productId, quantity } = req.body;
+  const { id, quantity } = req.body;
 
   try {
-    const product = await Product.findById(productId);
+    const product = await Product.findById(id);
     if (!product) {
       return res.status(404).send("Product not found");
     }
@@ -138,46 +153,110 @@ router.post("/cart", authenticateToken, async (req, res) => {
     if (cart) {
       // Cart exists, update it
       const itemIndex = cart.items.findIndex(
-        (item) => item.product.toString() === productId
+        (item) => item.product.toString() === id
       );
 
       if (itemIndex > -1) {
         // Product exists in cart, update quantity
-        cart.items[itemIndex].quantity += quantity;
+        cart.items[itemIndex].quantity = quantity;
       } else {
         // Add new product to cart
-        cart.items.push({ product: productId, quantity, price });
+        cart.items.push({ product: id, quantity, price });
       }
     } else {
       // No cart for user, create new cart
       cart = new Cart({
         user: userId,
-        items: [{ product: productId, quantity, price }],
+        items: [{ product: id, quantity, price }],
       });
     }
 
     await cart.save();
-    res.status(201).json(cart);
+    res.status(201).json({ success: true, data: cart, message: "cart stored" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error adding to cart" });
   }
 });
 
+// router.get("/cart", authenticateToken, async (req, res) => {
+//   const userId = req.user.userId; // Adjust based on your authentication middleware
+
+//   try {
+//     const cart = await Cart.findOne({ user: userId })
+//       .populate("items.product", "name price") // Adjust the fields you want to populate as needed
+//       .exec();
+
+//     if (!cart) {
+//       // Consider whether you want to return an empty cart or a not found status
+//       return res.status(404).json({ message: "Cart not found" });
+//     }
+
+//     res.json({ success: true, data: cart, message: "cart stored" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Error retrieving cart" });
+//   }
+// });
+
 router.get("/cart", authenticateToken, async (req, res) => {
-  const userId = req.user.userId; // Adjust based on your authentication middleware
+  const userId = req.user.userId;
+  console.log(`Cart request : ${req}`);
 
   try {
     const cart = await Cart.findOne({ user: userId })
-      .populate("items.product", "name price") // Adjust the fields you want to populate as needed
+      .populate("items.product")
       .exec();
 
     if (!cart) {
-      // Consider whether you want to return an empty cart or a not found status
-      return res.status(404).json({ message: "Cart not found" });
+      return res
+        .status(201)
+        .json({ success: false, message: "Cart not found" });
     }
 
-    res.json(cart);
+    // Transform the cart items to match the required format
+    const transformedItems = cart.items.map((item) => ({
+      id: item.product._id,
+      name: item.product.name,
+      images: [
+        "https://images.heb.com/is/image/HEBGrocery/000466634-1?jpegSize=150&hei=1400&fit=constrain&qlt=75",
+      ], // Assuming images is an array field in Product
+      description: item.product.description,
+      price: item.price,
+      old_price: item.product.old_price, // Assuming old_price is a field in Product
+      nutrition_information: {
+        serving_size: item.product.serving_size,
+        calories: item.product.calories,
+        total_fat: item.product.total_fat,
+        saturated_fat: item.product.saturated_fat,
+        total_sugars: item.product.total_sugars,
+        protein: item.product.protein,
+      },
+      reviews: [], // Assuming reviews is an array field in Product
+      quantity: item.quantity,
+    }));
+
+    // Calculate the total price of items in the cart
+    const total = transformedItems.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0
+    );
+
+    // Example discount calculation (modify as per your discount logic)
+    const discount = total * 0.05; // 5% discount for example
+
+    // Example delivery fee (modify as per your delivery fee logic)
+    const delivery = 2;
+
+    res.json({
+      success: true,
+      data: {
+        list: transformedItems,
+        total: total,
+        discount: 2.88,
+      },
+      message: "Cart data sent successfully",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error retrieving cart" });
@@ -209,6 +288,20 @@ router.post("/orders", authenticateToken, async (req, res) => {
       })),
       discount: discount,
     });
+    await newOrder.save();
+
+    // Reduce product quantity or delete if quantity becomes 0
+    for (const product of products) {
+      let productToUpdate = await Product.findById(product.id);
+      if (productToUpdate) {
+        productToUpdate.quantity -= product.quantity;
+        if (productToUpdate.quantity <= 0) {
+          await Product.deleteOne({ _id: product.id }); // Delete product if quantity is 0 or less
+        } else {
+          await productToUpdate.save(); // Update product with reduced quantity
+        }
+      }
+    }
 
     const send = {
       success: true,
@@ -216,7 +309,8 @@ router.post("/orders", authenticateToken, async (req, res) => {
       message: "Order created successfully",
     };
 
-    await newOrder.save();
+    await Cart.findOneAndDelete({ user: userId });
+
     const mailOptions = {
       from: '"Your Store Name" <yourgmail@gmail.com>', // sender address
       to: user.email, // list of receivers, assuming user model has an email field
@@ -249,12 +343,11 @@ router.post("/orders", authenticateToken, async (req, res) => {
 
 router.get("/orders", authenticateToken, async (req, res) => {
   try {
-    console.log(req);
+    // console.log(req);
     const userId = req.user.userId; // Adjust based on your authentication middleware
-    const ordersFromDB = await Order.find({ user: userId })
-      .populate("products.product") // Assuming a structure where each product in products array references a Product model
-      .exec();
-
+    console.log(userId);
+    const ordersFromDB = await Order.find({ user: userId });
+    console.log("Orders from DB:", ordersFromDB);
     const history = ordersFromDB.map((order) => ({
       id: order._id,
       number: order.number,
@@ -264,10 +357,10 @@ router.get("/orders", authenticateToken, async (req, res) => {
       delivery: "qwdqdeqw",
       discount: order.discount,
       products: order.products.map((p) => ({
-        id: p.product._id, // Assuming the populated product document has an _id field
-        name: p.product.name,
+        // id: p.product._id, // Assuming the populated product document has an _id field
+        name: p.name,
         quantity: p.quantity,
-        price: p.product.price,
+        price: p.price,
       })),
     }));
 
