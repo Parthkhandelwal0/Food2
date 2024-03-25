@@ -277,6 +277,9 @@ router.post("/orders", authenticateToken, async (req, res) => {
   }
 
   try {
+    const firstProduct = await Product.findById(products[0].id).populate(
+      "store"
+    );
     const newOrder = new Order({
       user: userId,
       totalAmount: total,
@@ -313,13 +316,28 @@ router.post("/orders", authenticateToken, async (req, res) => {
     await Cart.findOneAndDelete({ user: userId });
 
     const mailOptions = {
-      from: '"Your Store Name" <yourgmail@gmail.com>', // sender address
+      from: '"Food2" <yourgmail@gmail.com>', // sender address
       to: user.email, // list of receivers, assuming user model has an email field
-      subject: "Order Confirmation", // Subject line
-      text: `Your order has been placed successfully on ${formattedDate}. Order Details: ${products
-        .map((p) => `${p.name}, Quantity: ${p.quantity}, Price: ${p.price}`)
-        .join("; ")}. Total Amount: ${total}. Discount: ${discount}.`, // plain text body
-      // html: "<b>Hello world?</b>", // You can also use HTML body
+      subject: "Food2 - Order Confirmation", // Subject line
+      // text: `Your order has been placed successfully on ${formattedDate}. Order Details: ${products
+      //   .map((p) => `${p.name}, Quantity: ${p.quantity}, Price: ${p.price}`)
+      //   .join("; ")}. Total Amount: ${total}. Discount: ${discount}.`, // plain text body
+      html: `
+      <h1>Order Confirmation</h1>
+      <p>Your order has been placed successfully on ${formattedDate}.</p>
+      <h2>Order Details:</h2>
+      <ul>
+        ${products
+          .map(
+            (p) =>
+              `<li>${p.name}, Quantity: ${
+                p.quantity
+              }, Price: $${p.price.toFixed(2)}</li>`
+          )
+          .join("")}
+      </ul>
+      <p><strong>Total Amount:</strong> $${total.toFixed(2)}</p>
+    `,
     };
 
     // Send the email
