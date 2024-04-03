@@ -40,7 +40,7 @@ router.post("/register", upload.single("photo"), async (req, res) => {
       name,
       location,
       phone,
-      image: imageUrl,
+      photo: imageUrl,
     });
     await user.save();
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
@@ -49,7 +49,7 @@ router.post("/register", upload.single("photo"), async (req, res) => {
     const data = {
       token: token,
       user: {
-        image: imageUrl,
+        photo: imageUrl,
         email: email,
         id: user._id,
         name: req.body.name,
@@ -79,6 +79,7 @@ router.post("/login", async (req, res) => {
     const data = {
       token: token,
       user: {
+        photo: user.photo,
         id: user._id,
         email: user.email,
         name: user.name,

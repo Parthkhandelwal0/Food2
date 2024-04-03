@@ -140,8 +140,8 @@ router.put(
 
       if (req.file) {
         // If there's an existing image, delete it
-        if (store.image) {
-          const existingImagePath = store.image.replace(
+        if (user.photo) {
+          const existingImagePath = user.photo.replace(
             "http://3.144.193.152:3000/uploads/",
             ""
           );
@@ -155,7 +155,9 @@ router.put(
           }
         }
         const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
-        store.image = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Update store's image with the new URL
+        console.log(uploadedFileName);
+        user.photo = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Update store's image with the new URL
+        console.log(uploadedFileName);
       }
       // Handle password change with hashing
       if (password) {
