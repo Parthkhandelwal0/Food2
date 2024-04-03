@@ -5,6 +5,7 @@ const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   description: { type: String, required: false },
+  sellByDate: { type: String, required: false },
   old_price: { type: Number }, // Optional since it may not always be greater than the price
   serving_size: { type: Number, default: 0 },
   calories: { type: Number, default: 0 },

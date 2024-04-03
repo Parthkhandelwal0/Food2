@@ -159,6 +159,8 @@ router.post(
   async (req, res) => {
     const {
       name,
+      description,
+      sellByDate,
       price,
       old_price,
       serving_size,
@@ -180,6 +182,8 @@ router.post(
         const productUpdates = {
           name,
           price,
+          sellByDate,
+          description,
           old_price,
           serving_size,
           calories,
@@ -227,6 +231,8 @@ router.post(
           name,
           price,
           old_price,
+          sellByDate,
+          description,
           serving_size,
           calories,
           total_fat,

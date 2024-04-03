@@ -4,6 +4,9 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
 const Store = require("../models/Store");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 const nodemailer = require("nodemailer");
 
@@ -93,48 +96,85 @@ router.post("/chechPassword", async (req, res) => {
     });
   }
 });
+// Directory where the uploads will be stored
+const uploadDir = path.join(__dirname, "uploads");
+// Ensure the upload directory exists
+fs.existsSync(uploadDir) || fs.mkdirSync(uploadDir, { recursive: true });
 
-// Update user information
-router.put("/update", authenticateToken, async (req, res) => {
-  const id = req.user.userId;
-  const { email, password, name, location, phone } = req.body;
-
-  try {
-    let user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Check if the requester is the user owner
-    if (req.user.userId !== user._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "You can only update your own user" });
-    }
-
-    // Update fields
-    if (email) user.email = email;
-    if (name) user.name = name;
-    if (location) user.location = location;
-    if (phone) user.phone = phone;
-
-    // Handle password change with hashing
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
-
-    await user.save(); // Save the updated user information
-    res.json({
-      success: true,
-      message: "User updated successfully",
-      data: user,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating user", error: error.message });
-  }
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); // Use the directory path
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
+const upload = multer({ storage: storage });
+// Update user information
+router.put(
+  "/update",
+  authenticateToken,
+  upload.single("photo"),
+  async (req, res) => {
+    const id = req.user.userId;
+    const { email, password, name, location, phone } = req.body;
+
+    try {
+      let user = await User.findById(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if the requester is the user owner
+      if (req.user.userId !== user._id.toString()) {
+        return res
+          .status(403)
+          .json({ message: "You can only update your own user" });
+      }
+
+      // Update fields
+      if (email) user.email = email;
+      if (name) user.name = name;
+      if (location) user.location = location;
+      if (phone) user.phone = phone;
+
+      if (req.file) {
+        // If there's an existing image, delete it
+        if (store.image) {
+          const existingImagePath = store.image.replace(
+            "http://3.144.193.152:3000/uploads/",
+            ""
+          );
+          const fullExistingImagePath = path.join(uploadDir, existingImagePath);
+          try {
+            fs.unlinkSync(fullExistingImagePath);
+            console.log("Successfully deleted the existing image.");
+          } catch (err) {
+            console.error("Error deleting the existing image:", err.message);
+            // Continue updating the store even if deleting the old image fails
+          }
+        }
+        const uploadedFileName = req.file.filename; // Extract the filename of the uploaded file
+        store.image = `http://3.144.193.152:3000/uploads/${uploadedFileName}`; // Update store's image with the new URL
+      }
+      // Handle password change with hashing
+      if (password) {
+        user.password = await bcrypt.hash(password, 10);
+      }
+
+      await user.save(); // Save the updated user information
+      res.json({
+        success: true,
+        message: "User updated successfully",
+        data: user,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error updating user", error: error.message });
+    }
+  }
+);
 
 router.post("/cart", authenticateToken, async (req, res) => {
   const userId = req.user.userId; // Adjust based on your authentication middleware
