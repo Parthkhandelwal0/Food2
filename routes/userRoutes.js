@@ -168,7 +168,13 @@ router.put(
       res.json({
         success: true,
         message: "User updated successfully",
-        data: user,
+        data: {
+          photo: user.photo,
+          email: user.email,
+          id: user._id,
+          name: req.body.name,
+          phone: req.body.phone,
+        },
       });
     } catch (error) {
       res
