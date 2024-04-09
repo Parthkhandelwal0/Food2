@@ -11,7 +11,10 @@ const CoordinatesSchema = new mongoose.Schema({
 
 const StoreSchema = new mongoose.Schema({
   image: { type: String }, // An array to store multiple image URLs
+  totalRevenue: { type: Number, default: 0 }, // New field for total money made
+  uniqueCustomers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Track unique customer IDs
   email: { type: String, required: true, unique: true },
+  totalProductsSold: { type: Number, default: 0 },
   password: { type: String, required: true },
   name: { type: String, required: true },
   coordinates: { type: CoordinatesSchema }, // Add this line

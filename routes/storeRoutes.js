@@ -42,6 +42,45 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+router.get("/home", authenticateToken, async (req, res) => {
+  const storeId = req.store.storeId; // Assuming authenticateToken middleware sets storeId
+
+  try {
+    const store = await Store.findById(storeId);
+    if (!store) {
+      return res.status(404).json({ message: "Store not found." });
+    }
+
+    // Optionally, fetch more detailed information if needed
+    const totalRevenue = store.totalRevenue;
+    const uniqueCustomerCount = store.uniqueCustomers.length; // Count of unique customers
+    const totalProductsSold = store.totalProductsSold;
+
+    // Count the number of products linked to this store
+    const productsCount = await Product.countDocuments({ store: storeId });
+    const totalViews = 1;
+
+    // You can also add more metrics or data specific to the store's dashboard/home page
+    const dataToSend = {
+      id: store._id,
+      name: store.name,
+      totalRevenue: totalRevenue,
+      uniqueCustomerCount: uniqueCustomerCount,
+      totalProductsSold: totalProductsSold,
+      totalViews: totalViews,
+    };
+
+    res.json({
+      success: true,
+      data: dataToSend,
+      message: "Store home data sent",
+    });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: "Error retrieving store home data" });
+  }
+});
+
 router.patch("/coordinates", authenticateToken, async (req, res) => {
   const storeId = req.store.storeId;
   const { longitude, latitude } = req.body;

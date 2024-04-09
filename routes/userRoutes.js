@@ -328,6 +328,7 @@ router.post("/orders", authenticateToken, async (req, res) => {
     const firstProduct = await Product.findById(products[0].id).populate(
       "store"
     );
+    const storeId = firstProduct.store._id;
     const newOrder = new Order({
       user: userId,
       totalAmount: total,
@@ -343,10 +344,12 @@ router.post("/orders", authenticateToken, async (req, res) => {
     await newOrder.save();
 
     // Reduce product quantity or delete if quantity becomes 0
+    let totalQuantitySoldInOrder = 0;
     for (const product of products) {
       let productToUpdate = await Product.findById(product.id);
       if (productToUpdate) {
         productToUpdate.quantity -= product.quantity;
+        totalQuantitySoldInOrder += product.quantity;
         if (productToUpdate.quantity <= 0) {
           await Product.deleteOne({ _id: product.id }); // Delete product if quantity is 0 or less
         } else {
@@ -354,6 +357,17 @@ router.post("/orders", authenticateToken, async (req, res) => {
         }
       }
     }
+    await Store.findByIdAndUpdate(storeId, {
+      $inc: {
+        totalProductsSold: totalQuantitySoldInOrder,
+        totalRevenue: total,
+      },
+    });
+
+    await Store.updateOne(
+      { _id: storeId, uniqueCustomers: { $ne: userId } },
+      { $push: { uniqueCustomers: userId } }
+    );
 
     const send = {
       success: true,
