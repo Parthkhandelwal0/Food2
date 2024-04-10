@@ -43,7 +43,7 @@ let transporter = nodemailer.createTransport({
 router.post("/stores", async (req, res) => {
   try {
     console.log(req.body);
-    userLocation = req.body.location;
+    // userLocation = req.body.location;
     const stores = await Store.find({}); // Fetch all stores from the database
 
     // Formatting the response object as specified
