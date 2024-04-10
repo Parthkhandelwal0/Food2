@@ -5,8 +5,8 @@ const bcrypt = require("bcryptjs");
 // Pre-save hook to hash password before saving the use
 
 const CoordinatesSchema = new mongoose.Schema({
-  longitude: { type: Number, required: true },
-  latitude: { type: Number, required: true },
+  longitude: { type: Number, required: true, default: 0 },
+  latitude: { type: Number, required: true, default: 0 },
 });
 
 const StoreSchema = new mongoose.Schema({
