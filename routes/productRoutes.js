@@ -180,6 +180,8 @@ router.post(
     if (req.body.id) {
       try {
         const productUpdates = {
+          description,
+          sellByDate,
           name,
           price,
           sellByDate,
@@ -228,6 +230,8 @@ router.post(
     } else {
       try {
         const product = new Product({
+          description,
+          sellsellByDate,
           name,
           price,
           old_price,
@@ -267,6 +271,8 @@ router.get("/", authenticateToken, async (req, res) => {
 
     const data = products.map((product) => ({
       id: product.id,
+      sellByDate: product.sellByDate,
+      description: product.description,
       name: product.name,
       price: product.price,
       old_price: product.old_price,
