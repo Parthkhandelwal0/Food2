@@ -231,7 +231,7 @@ router.post(
       try {
         const product = new Product({
           description,
-          sellsellByDate,
+          sellByDate,
           name,
           price,
           old_price,
