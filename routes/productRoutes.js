@@ -221,7 +221,22 @@ router.post(
         res.json({
           success: true,
           message: "Product updated successfully",
-          product: updatedProduct,
+          data: {
+            id: product._id,
+            sellByDate: product.sellByDate,
+            description: product.description,
+            name: product.name,
+            price: product.price,
+            old_price: product.old_price,
+            serving_size: product.serving_size,
+            calories: product.calories,
+            total_fat: product.total_fat,
+            saturated_fat: product.saturated_fat,
+            total_sugars: product.total_sugars,
+            protein: product.protein,
+            quantity: product.quantity,
+            images: product.images,
+          },
         });
       } catch (error) {
         console.error(error);
@@ -253,7 +268,22 @@ router.post(
         res.status(201).json({
           success: true,
           message: "Product created successfully",
-          product,
+          data: {
+            id: product._id,
+            sellByDate: product.sellByDate,
+            description: product.description,
+            name: product.name,
+            price: product.price,
+            old_price: product.old_price,
+            serving_size: product.serving_size,
+            calories: product.calories,
+            total_fat: product.total_fat,
+            saturated_fat: product.saturated_fat,
+            total_sugars: product.total_sugars,
+            protein: product.protein,
+            quantity: product.quantity,
+            images: product.images,
+          },
         });
       } catch (error) {
         console.error(error);
